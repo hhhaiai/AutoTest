@@ -12,8 +12,6 @@ public class WifiTest extends BaseTest {
 
     //private static final String LOG_TAG = "WifiTest";
 
-    private Context mContext;
-
     private WifiManager mWifiManager;
 
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -33,12 +31,11 @@ public class WifiTest extends BaseTest {
 
     public WifiTest(Context context) {
         super(context);
-        mContext = context;
         mWifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
     }
 
     @Override
-    public void executeTest() {
+    public void onRun() {
         if (mWifiManager.isWifiEnabled()) {
             mWifiManager.setWifiEnabled(false);
             sleep(5000);
@@ -47,7 +44,7 @@ public class WifiTest extends BaseTest {
         sleep(2000);
         mContext.registerReceiver(mReceiver, new IntentFilter(
                 WifiManager.WIFI_STATE_CHANGED_ACTION));
-        setTimeout(10000);
+        setTimeout(20000);
         mWifiManager.setWifiEnabled(true);
 
         // Pause the thread, resume after Wi-Fi turn on
@@ -55,11 +52,11 @@ public class WifiTest extends BaseTest {
 
         mContext.unregisterReceiver(mReceiver);
         mWifiManager.setWifiEnabled(false);
-        //sleep(5000);
+        sleep(10000);
     }
 
     @Override
-    public String getTestTitle() {
+    public String getTitle() {
         return mContext.getString(R.string.wifi_test);
     }
 }

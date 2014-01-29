@@ -12,11 +12,10 @@ public class NetworkTest extends RebootTest {
 
     private static final String LOG_TAG = "NetworkTest";
 
-    private Context mContext;
-
     private TelephonyManager mTelephonyManager;
 
     private PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
+
         @Override
         public void onServiceStateChanged(ServiceState serviceState) {
             int state = serviceState.getState();
@@ -34,12 +33,11 @@ public class NetworkTest extends RebootTest {
 
     public NetworkTest(Context context) {
         super(context);
-        mContext = context;
         mTelephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
     }
 
     @Override
-    public void executeTest() {
+    public void onRun() {
         sleep(30000);
         registerListener();
         pause();
@@ -48,7 +46,7 @@ public class NetworkTest extends RebootTest {
     }
 
     @Override
-    public String getTestTitle() {
+    public String getTitle() {
         return mContext.getString(R.string.network_test);
     }
 

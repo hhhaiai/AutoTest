@@ -15,17 +15,15 @@ import com.ztemt.test.auto.R;
 public class SleepWakeTest extends BaseTest {
 
     private static final String LOG_TAG = "SleepWakeTest";
-    private static final String SLEEP_TIMEOUT_ACTION = "android.intent.action.SLEEP_TIMEOUT";
+    private static final String ACTION_SLEEP_TIMEOUT = "com.ztemt.test.auto.action.SLEEP_TIMEOUT";
 
-    private Context mContext;
-
+    @SuppressWarnings("deprecation")
     private KeyguardManager.KeyguardLock mKeyguardLock;
     private PowerManager.WakeLock mWakeLock;
     private PowerManager mPowerManager;
 
     public SleepWakeTest(Context context) {
         super(context);
-        mContext = context;
         mPowerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
     }
 
@@ -46,19 +44,20 @@ public class SleepWakeTest extends BaseTest {
     };
 
     @Override
-    public void executeTest() {
+    public void onRun() {
         registerReceiver();
         goToSleep();
-        wakeUp(10000);
+        wakeUp(5000);
         pause();
         unregisterReceiver();
     }
 
     @Override
-    public String getTestTitle() {
+    public String getTitle() {
         return mContext.getString(R.string.sleep_wake_test);
     }
 
+    @SuppressWarnings("deprecation")
     private void enableKeyguard(boolean enabled) {
         if (mKeyguardLock == null) {
             KeyguardManager km = (KeyguardManager) mContext.getSystemService(
@@ -72,6 +71,7 @@ public class SleepWakeTest extends BaseTest {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void acquireWakeLock(long milliseconds) {
         if (mWakeLock == null) {
             mWakeLock = mPowerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK
@@ -96,14 +96,14 @@ public class SleepWakeTest extends BaseTest {
     private void wakeUp(long milliseconds) {
         AlarmManager am = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(mContext, 0,
-                new Intent(SLEEP_TIMEOUT_ACTION), PendingIntent
+                new Intent(ACTION_SLEEP_TIMEOUT), PendingIntent
                 .FLAG_CANCEL_CURRENT);
         am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + milliseconds,
                 pendingIntent);
     }
 
     private void registerReceiver() {
-        IntentFilter filter = new IntentFilter(SLEEP_TIMEOUT_ACTION);
+        IntentFilter filter = new IntentFilter(ACTION_SLEEP_TIMEOUT);
         mContext.registerReceiver(mReceiver, filter);
     }
 

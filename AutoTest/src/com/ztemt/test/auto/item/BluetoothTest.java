@@ -13,8 +13,6 @@ public class BluetoothTest extends BaseTest {
 
     private static final String LOG_TAG = "BluetoothTest";
 
-    private Context mContext;
-
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -31,11 +29,10 @@ public class BluetoothTest extends BaseTest {
 
     public BluetoothTest(Context context) {
         super(context);
-        mContext = context;
     }
 
     @Override
-    public void executeTest() {
+    public void onRun() {
         BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
         if (adapter == null) {
             Log.e(LOG_TAG, "BluetoothAdapter is null");
@@ -60,7 +57,7 @@ public class BluetoothTest extends BaseTest {
     }
 
     @Override
-    public String getTestTitle() {
+    public String getTitle() {
         return mContext.getString(R.string.bluetooth_test);
     }
 }

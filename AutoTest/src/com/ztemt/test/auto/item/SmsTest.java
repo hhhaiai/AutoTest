@@ -9,19 +9,13 @@ import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
-import android.widget.EditText;
 
 import com.ztemt.test.auto.R;
-import com.ztemt.test.auto.util.DatabaseUtil;
 
 public class SmsTest extends BaseTest {
 
     private static final String LOG_TAG = "SmsTest";
     private static final String SMS_RECEIVED_ACTION = "android.provider.Telephony.SMS_RECEIVED";
-
-    private Context mContext;
-    private EditText mPhoneNumberEdit;
 
     private TelephonyManager mTelephonyManager;
 
@@ -35,12 +29,11 @@ public class SmsTest extends BaseTest {
 
     public SmsTest(Context context) {
         super(context);
-        mContext = context;
         mTelephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
     }
 
     @Override
-    public void executeTest() {
+    public void onRun() {
         if (mTelephonyManager.getSimState() != TelephonyManager.SIM_STATE_READY) {
             Log.e(LOG_TAG, "SIM not ready.");
             sleep(2000);
@@ -55,40 +48,34 @@ public class SmsTest extends BaseTest {
     }
 
     @Override
-    public String getTestTitle() {
+    public String getTitle() {
         return mContext.getString(R.string.sms_test);
     }
 
-    @Override
-    public View createPreferenceView() {
-        View view = super.createPreferenceView();
-        mPhoneNumberEdit = addPreferenceEdit(view, R.string.my_phone_number_label, getMyPhoneNumber());
-        return view;
-    }
-
-    @Override
-    public void onPreferenceClick(View view) {
-        super.onPreferenceClick(view);
-        setMyPhoneNumber(mPhoneNumberEdit.getText().toString());
-    }
-
     private void sendMessage() {
-        String phoneNumber = getMyPhoneNumber();
+        String operator = mTelephonyManager.getSimOperator();
+        String phoneNumber = "10086";
+        String textBody = "101";
+
+        if (!TextUtils.isEmpty(operator)) {
+            if (operator.equals("46000") || operator.equals("46002")) {
+                // China Mobile
+                phoneNumber = "10086";
+            } else if (operator.equals("46001")) {
+                // China Unicom
+                phoneNumber = "10010";
+            } else if (operator.equals("46003")) {
+                // China Telecom
+                phoneNumber = "10000";
+            }
+        }
 
         if (!TextUtils.isEmpty(phoneNumber)) {
             PendingIntent pendingIntent = PendingIntent.getActivity(mContext, 0,
                     new Intent(), PendingIntent.FLAG_CANCEL_CURRENT);
-            SmsManager.getDefault().sendTextMessage(phoneNumber, null, "sms test!",
+            SmsManager.getDefault().sendTextMessage(phoneNumber, null, textBody,
                     pendingIntent, null);
         }
-    }
-
-    private String getMyPhoneNumber() {
-        return DatabaseUtil.getInstance().getValue("my_phone_number", "");
-    }
-
-    private void setMyPhoneNumber(String myPhoneNumber) {
-        DatabaseUtil.getInstance().setValue("my_phone_number", myPhoneNumber);
     }
 
     private void registerReceiver() {
@@ -97,6 +84,10 @@ public class SmsTest extends BaseTest {
     }
 
     private void unregisterReceiver() {
-        mContext.unregisterReceiver(mReceiver);
+        try {
+            mContext.unregisterReceiver(mReceiver);
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        }
     }
 }

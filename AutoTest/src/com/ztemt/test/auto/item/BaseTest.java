@@ -12,8 +12,7 @@ import android.content.IntentFilter;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Message;
+import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -22,52 +21,38 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.ztemt.test.auto.R;
-import com.ztemt.test.auto.util.DatabaseUtil;
+import com.ztemt.test.auto.util.PreferenceUtils;
 
 public abstract class BaseTest implements Runnable {
 
-    private static final String TIMEOUT_ACTION = "android.intent.action.AUTOTEST_TIMEOUT";
-    private static final String SUCCESS_TIMES = "_success_times";
-    private static final String FAILURE_TIMES = "_failure_times";
-    private static final String TOTAL_TIMES = "_total_times";
-    private static final String ENABLED = "_enabled";
+    private static final String ACTION_TIMEOUT = "com.ztemt.test.auto.action.TIMEOUT";
+    private static final String SUCCESS = "success";
+    private static final String FAILURE = "failure";
+    private static final String TIMES   = "times";
+    private static final String ENABLED = "enabled";
+    private static final String ORDINAL = "ordinal";
 
-    private static final int AUTOTEST_START = Integer.MIN_VALUE;
-    private static final int AUTOTEST_END   = Integer.MAX_VALUE;
+    private static final int MSG_START = Integer.MIN_VALUE;
+    private static final int MSG_STOP  = Integer.MAX_VALUE;
 
     private ScheduledThreadPoolExecutor mTimerTask;
     private AlarmManager mAlarmManager;
     private PendingIntent mPendingIntent;
-
-    private Context mContext;
     private Thread mThread;
-    private int mIndex;
 
-    private AutoTestListener mAutoTestListener;
-    private DatabaseUtil mDatabaseUtil;
-
-    private Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.arg1) {
-            case AUTOTEST_START:
-                mThread = new ExecuteThread();
-                mThread.start();
-                break;
-            case AUTOTEST_END:
-                if (mAutoTestListener != null) {
-                    mAutoTestListener.onTestEnd();
-                }
-                setReboot(false);
-                break;
-            }
-        }
-    };
+    private TestListener mListener;
+    private PreferenceUtils mPrefUtils;
+    private String mSuccess;
+    private String mFailure;
+    private String mTimes;
+    private String mEnabled;
+    private String mOrdinal;
 
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
+
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(TIMEOUT_ACTION)) {
+            if (intent.getAction().equals(ACTION_TIMEOUT)) {
                 // Play a alert sound and resume thread
                 playAlertRingtone();
                 setFailure();
@@ -76,87 +61,114 @@ public abstract class BaseTest implements Runnable {
         }
     };
 
-    private class ExecuteThread extends Thread {
+    private Runnable mStartRunnable = new Runnable() {
+
         @Override
         public void run() {
-            synchronized (this) {
-                if (getTestTimes() >= getTotalTimes()) {
-                    setTestTimer(AUTOTEST_END);
-                } else {
-                    IntentFilter filter = new IntentFilter(TIMEOUT_ACTION);
-                    mContext.registerReceiver(mReceiver, filter);
-
-                    executeTest();
-
-                    mAlarmManager.cancel(mPendingIntent);
-                    try {
-                        mContext.unregisterReceiver(mReceiver);
-                    } catch (IllegalArgumentException e) {
-                        e.printStackTrace();
-                    }
-
-                    if (mAutoTestListener != null) {
-                        mAutoTestListener.onTestStart();
-                    }
-                    if (getTestTimes() >= getTotalTimes()) {
-                        setTestTimer(AUTOTEST_END);
-                    } else {
-                        setTestTimer(AUTOTEST_START);
-                    }
-                }
-            }
+            mThread = new Thread(BaseTest.this);
+            mThread.start();
         }
-    }
+    };
+
+    private Runnable mStopRunnable = new Runnable() {
+
+        @Override
+        public void run() {
+            if (mListener != null) {
+                mListener.onTestStop();
+            }
+            mPrefUtils.setReboot(false);
+        }
+    };
+
+    protected Context mContext;
+
+    protected abstract void onRun();
+
+    public abstract String getTitle();
 
     public BaseTest(Context context) {
         mContext = context;
+        mPrefUtils = new PreferenceUtils(context);
 
-        mDatabaseUtil = DatabaseUtil.getInstance();
+        mSuccess = getPrefixName(SUCCESS);
+        mFailure = getPrefixName(FAILURE);
+        mTimes   = getPrefixName(TIMES);
+        mEnabled = getPrefixName(ENABLED);
+        mOrdinal = getPrefixName(ORDINAL);
+
         mAlarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
     }
 
     public void startTest() {
-        if (!isReboot()) {
+        if (!mPrefUtils.isReboot()) {
             setSuccessTimes(0);
             setFailureTimes(0);
         }
-        setTestTimer(AUTOTEST_START);
+        setTestTimer(MSG_START);
     }
 
-    public void setTestTimer(final int stepIndex, int delay) {
+    public void setTestTimer(final int msg, int delay) {
         cancelTimerTask();
 
-        mIndex = stepIndex;
-
-        mTimerTask = new ScheduledThreadPoolExecutor(10);
-        mTimerTask.schedule(this, delay, TimeUnit.MILLISECONDS);
+        if (msg == MSG_START) {
+            mTimerTask = new ScheduledThreadPoolExecutor(10);
+            mTimerTask.schedule(mStartRunnable, delay, TimeUnit.MILLISECONDS);
+        } else if (msg == MSG_STOP) {
+            mTimerTask = new ScheduledThreadPoolExecutor(10);
+            mTimerTask.schedule(mStopRunnable, delay, TimeUnit.MILLISECONDS);
+        }
     }
 
-    public void setTestTimer(final int stepIndex) {
-        setTestTimer(stepIndex, 0);
-    }
-
-    @Override
-    public void run() {
-        Message message = mHandler.obtainMessage();
-        message.arg1 = mIndex;
-        mHandler.sendMessage(message);
+    public void setTestTimer(final int msg) {
+        setTestTimer(msg, 0);
     }
 
     public void cancelTimerTask() {
         if (mTimerTask != null) {
-            mTimerTask.remove(this);
+            mTimerTask.remove(mStartRunnable);
+            mTimerTask.remove(mStopRunnable);
             mTimerTask.shutdownNow();
             mTimerTask = null;
         }
     }
 
     public void setTimeout(long milliseconds) {
-        Intent intent = new Intent(TIMEOUT_ACTION);
+        Intent intent = new Intent(ACTION_TIMEOUT);
         mPendingIntent = PendingIntent.getBroadcast(mContext, 0, intent,
                 PendingIntent.FLAG_CANCEL_CURRENT);
         mAlarmManager.set(AlarmManager.RTC, System.currentTimeMillis()
                 + milliseconds, mPendingIntent);
+    }
+
+    @Override
+    public void run() {
+        synchronized (this) {
+            if (getTestTimes() >= getTotalTimes()) {
+                setTestTimer(MSG_STOP);
+            } else {
+                IntentFilter filter = new IntentFilter(ACTION_TIMEOUT);
+                mContext.registerReceiver(mReceiver, filter);
+
+                onRun();
+
+                mAlarmManager.cancel(mPendingIntent);
+                try {
+                    mContext.unregisterReceiver(mReceiver);
+                } catch (IllegalArgumentException e) {
+                    e.printStackTrace();
+                }
+
+                if (mListener != null) {
+                    mListener.onTestStart();
+                }
+                if (getTestTimes() >= getTotalTimes()) {
+                    setTestTimer(MSG_STOP);
+                } else {
+                    setTestTimer(MSG_START);
+                }
+            }
+        }
     }
 
     public int getTestTimes() {
@@ -172,36 +184,70 @@ public abstract class BaseTest implements Runnable {
     }
 
     public int getSuccessTimes() {
-        return mDatabaseUtil.getIntValue(getClass().getSimpleName() + SUCCESS_TIMES, 0);
+        return mPrefUtils.getInt(mSuccess, 0);
     }
 
     public void setSuccessTimes(int value) {
-        mDatabaseUtil.setIntValue(getClass().getSimpleName() + SUCCESS_TIMES, value);
+        mPrefUtils.putInt(mSuccess, value);
     }
 
     public int getFailureTimes() {
-        return mDatabaseUtil.getIntValue(getClass().getSimpleName() + FAILURE_TIMES, 0);
+        return mPrefUtils.getInt(mFailure, 0);
     }
 
     public void setFailureTimes(int value) {
-        mDatabaseUtil.setIntValue(getClass().getSimpleName() + FAILURE_TIMES, value);
+        mPrefUtils.putInt(mFailure, value);
     }
 
     public int getTotalTimes() {
-        return mDatabaseUtil.getIntValue(getClass().getSimpleName() + TOTAL_TIMES, 1);
+        return mPrefUtils.getInt(mTimes, 1);
     }
 
     public void setTotalTimes(int value) {
-        mDatabaseUtil.setIntValue(getClass().getSimpleName() + TOTAL_TIMES, value);
+        mPrefUtils.putInt(mTimes, value);
     }
 
-    public void setAutoTestListener(AutoTestListener listener) {
-        mAutoTestListener = listener;
+    public boolean isEnabled() {
+        return mPrefUtils.getBoolean(mEnabled, true);
     }
 
-    public abstract void executeTest();
+    public void setEnabled(boolean enabled) {
+        mPrefUtils.putBoolean(mEnabled, enabled);
+    }
 
-    public abstract String getTestTitle();
+    public int getOrdinal() {
+        return mPrefUtils.getInt(mOrdinal, 1);
+    }
+
+    public void setOrdinal(int ordinal) {
+        mPrefUtils.putInt(mOrdinal, ordinal);
+    }
+
+    public void setExtras(Bundle bundle) {
+        if (bundle == null) return;
+
+        if (bundle.containsKey(mTimes)) {
+            setTotalTimes(bundle.getInt(mTimes, 10));
+        } else if (bundle.containsKey(TIMES)) {
+            setTotalTimes(bundle.getInt(TIMES, 10));
+        }
+        if (bundle.containsKey(mEnabled)) {
+            setEnabled(bundle.getBoolean(mEnabled, true));
+        } else if (bundle.containsKey(ENABLED)) {
+            setEnabled(bundle.getBoolean(ENABLED, true));
+        }
+        if (bundle.containsKey(mOrdinal)) {
+            setOrdinal(bundle.getInt(mOrdinal));
+        }
+    }
+
+    public void setTestListener(TestListener listener) {
+        mListener = listener;
+    }
+
+    public boolean isRunning() {
+        return mThread != null && mThread.isAlive();
+    }
 
     public void pause() {
         synchronized (mThread) {
@@ -227,32 +273,11 @@ public abstract class BaseTest implements Runnable {
         }
     }
 
-    public interface AutoTestListener {
-        public void onTestStart();
-        public void onTestEnd();
-    }
-
-    public void setReboot(boolean reboot) {
-        mDatabaseUtil.setBoolValue("is_reboot", reboot);
-    }
-
-    public boolean isReboot() {
-        return mDatabaseUtil.getBoolValue("is_reboot");
-    }
-
-    public void setEnabled(boolean enabled) {
-        mDatabaseUtil.setBoolValue(getClass().getSimpleName() + ENABLED, enabled);
-    }
-
-    public boolean isEnabled() {
-        return mDatabaseUtil.getBoolValue(getClass().getSimpleName() + ENABLED, true);
-    }
-
     public View createPreferenceView() {
         LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(
                 Context.LAYOUT_INFLATER_SERVICE);
         View view = inflater.inflate(R.layout.pref_edit, null);
-        EditText testTime = (EditText) view.findViewById(R.id.test_time);
+        EditText testTime = (EditText) view.findViewById(R.id.test_times);
         testTime.setText(String.valueOf(getTotalTimes()));
         return view;
     }
@@ -269,7 +294,7 @@ public abstract class BaseTest implements Runnable {
     }
 
     public void onPreferenceClick(View view) {
-        EditText testTime = (EditText) view.findViewById(R.id.test_time);
+        EditText testTime = (EditText) view.findViewById(R.id.test_times);
         try {
             int value = Integer.parseInt(testTime.getText().toString());
             setTotalTimes(value);
@@ -295,5 +320,9 @@ public abstract class BaseTest implements Runnable {
                 }
             }
         }.start();
+    }
+
+    private String getPrefixName(String prefix) {
+        return String.format("%s_%s", getClass().getSimpleName(), prefix);
     }
 }

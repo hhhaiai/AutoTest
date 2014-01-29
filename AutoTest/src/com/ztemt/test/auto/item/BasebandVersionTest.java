@@ -11,16 +11,13 @@ public class BasebandVersionTest extends RebootTest {
 
     private static final String LOG_TAG = "BasebandVersionTest";
 
-    private Context mContext;
-
     public BasebandVersionTest(Context context) {
         super(context);
-        mContext = context;
     }
 
     @Override
-    public void executeTest() {
-        String basebandVersion = Build.RADIO;
+    public void onRun() {
+        String basebandVersion = Build.getRadioVersion();
         if (TextUtils.isEmpty(basebandVersion)) {
             setFailure();
         } else {
@@ -33,7 +30,7 @@ public class BasebandVersionTest extends RebootTest {
     }
 
     @Override
-    public String getTestTitle() {
+    public String getTitle() {
         return mContext.getString(R.string.baseband_version_test);
     }
 }

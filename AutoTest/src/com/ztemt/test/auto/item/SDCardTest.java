@@ -17,8 +17,6 @@ public class SDCardTest extends BaseTest {
 
     private static final String LOG_TAG = "SDCardTest";
 
-    private Context mContext;
-
     private IMountService mMountService;
 
     private String mMountPoint = Environment.getExternalStorageDirectory().getPath();
@@ -44,7 +42,7 @@ public class SDCardTest extends BaseTest {
     }
 
     @Override
-    public void executeTest() {
+    public void onRun() {
         String state = Environment.getExternalStorageState();
         if (state.equals(Environment.MEDIA_MOUNTED)) {
             registerReceiver();
@@ -65,7 +63,7 @@ public class SDCardTest extends BaseTest {
     }
 
     @Override
-    public String getTestTitle() {
+    public String getTitle() {
         return mContext.getString(R.string.sdcard_test);
     }
 

@@ -12,15 +12,12 @@ public class RingtoneTest extends BaseTest {
 
     private static final String LOG_TAG = "RingtoneTest";
 
-    private Context mContext;
-
     public RingtoneTest(Context context) {
         super(context);
-        mContext = context;
     }
 
     @Override
-    public void executeTest() {
+    public void onRun() {
         Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
         Ringtone r = RingtoneManager.getRingtone(mContext, uri);
         try {
@@ -42,7 +39,7 @@ public class RingtoneTest extends BaseTest {
     }
 
     @Override
-    public String getTestTitle() {
+    public String getTitle() {
         return mContext.getString(R.string.ringtone_test);
     }
 }
