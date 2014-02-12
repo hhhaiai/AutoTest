@@ -90,6 +90,13 @@ public class AutoTestAdapter extends BaseAdapter {
         return convertView;
     }
 
+    public void disableAll() {
+        for (int i = 0; i < mTests.length; i++) {
+            mTests[i].setEnabled(false);
+        }
+        notifyDataSetChanged();
+    }
+
     public byte[] report() {
         StringBuffer sb = new StringBuffer(mContext.getString(R.string.report_titles));
         for (int i = 0; i < mTests.length; i++) {

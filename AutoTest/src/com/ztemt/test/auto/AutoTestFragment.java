@@ -13,6 +13,9 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
@@ -82,6 +85,7 @@ public class AutoTestFragment extends ListFragment implements TestListener,
         setListAdapter(mAdapter);
         getActivity().bindService(new Intent(PlatformService.class.getName()),
                 mServiceConnection, Context.BIND_AUTO_CREATE);
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -95,6 +99,22 @@ public class AutoTestFragment extends ListFragment implements TestListener,
         super.onActivityCreated(savedInstanceState);
         getListView().setSelected(true);
         startTest(getArguments());
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.main, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+        case R.id.manual_stop:
+            mHandler.postDelayed(mNotifyRunnable, 3000);
+            mAdapter.disableAll();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
