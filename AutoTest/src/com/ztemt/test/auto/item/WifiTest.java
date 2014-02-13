@@ -44,7 +44,7 @@ public class WifiTest extends BaseTest {
         sleep(2000);
         mContext.registerReceiver(mReceiver, new IntentFilter(
                 WifiManager.WIFI_STATE_CHANGED_ACTION));
-        setTimeout(20000);
+        setTimeout(30000);
         mWifiManager.setWifiEnabled(true);
 
         // Pause the thread, resume after Wi-Fi turn on

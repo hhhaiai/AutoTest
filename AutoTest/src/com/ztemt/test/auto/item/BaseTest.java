@@ -13,6 +13,7 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -25,6 +26,7 @@ import com.ztemt.test.auto.util.PreferenceUtils;
 
 public abstract class BaseTest implements Runnable {
 
+    private static final String LOG_TAG = "AutoTest";
     private static final String ACTION_TIMEOUT = "com.ztemt.test.auto.action.TIMEOUT";
     private static final String SUCCESS = "success";
     private static final String FAILURE = "failure";
@@ -144,29 +146,20 @@ public abstract class BaseTest implements Runnable {
     @Override
     public void run() {
         synchronized (this) {
-            if (getTestTimes() >= getTotalTimes()) {
-                setTestTimer(MSG_STOP);
-            } else {
+            if (isEnabled() && getTestTimes() < getTotalTimes()) {
+                Log.d(LOG_TAG, String.format("%s[%d/%d]", getClass()
+                    .getSimpleName(), getTestTimes() + 1, getTotalTimes()));
                 IntentFilter filter = new IntentFilter(ACTION_TIMEOUT);
                 mContext.registerReceiver(mReceiver, filter);
-
                 onRun();
-
                 mAlarmManager.cancel(mPendingIntent);
-                try {
-                    mContext.unregisterReceiver(mReceiver);
-                } catch (IllegalArgumentException e) {
-                    e.printStackTrace();
-                }
-
+                mContext.unregisterReceiver(mReceiver);
                 if (mListener != null) {
                     mListener.onTestStart();
                 }
-                if (getTestTimes() >= getTotalTimes()) {
-                    setTestTimer(MSG_STOP);
-                } else {
-                    setTestTimer(MSG_START);
-                }
+                setTestTimer(MSG_START);
+            } else {
+                setTestTimer(MSG_STOP);
             }
         }
     }
