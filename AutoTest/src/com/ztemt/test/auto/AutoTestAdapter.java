@@ -57,7 +57,10 @@ public class AutoTestAdapter extends BaseAdapter {
 
     @Override
     public BaseTest getItem(int position) {
-        return sTests[position];
+        if (position < getCount()) {
+            return sTests[position];
+        }
+        return null;
     }
 
     @Override
@@ -89,6 +92,14 @@ public class AutoTestAdapter extends BaseAdapter {
             }
         });
         return convertView;
+    }
+
+    public void clearTimes() {
+        for (int i = 0; i < sTests.length; i++) {
+            sTests[i].setSuccessTimes(0);
+            sTests[i].setFailureTimes(0);
+        }
+        notifyDataSetChanged();
     }
 
     public void disableAll() {

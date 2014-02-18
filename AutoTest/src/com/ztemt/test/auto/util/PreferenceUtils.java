@@ -6,6 +6,8 @@ import android.preference.PreferenceManager;
 
 public class PreferenceUtils {
 
+    private static final String REBOOT = "reboot";
+    private static final String CURRENT = "current";
     private SharedPreferences mPrefs;
 
     public PreferenceUtils(Context context) {
@@ -49,10 +51,18 @@ public class PreferenceUtils {
     }
 
     public boolean isReboot() {
-        return getBoolean("reboot", false);
+        return getBoolean(REBOOT, false);
     }
 
     public void setReboot(boolean reboot) {
-        putBoolean("reboot", reboot);
+        putBoolean(REBOOT, reboot);
+    }
+
+    public int getCurrent() {
+        return getInt(CURRENT, 0);
+    }
+
+    public void setCurrent(int current) {
+        putInt(CURRENT, current);
     }
 }

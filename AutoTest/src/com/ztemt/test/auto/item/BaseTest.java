@@ -103,10 +103,10 @@ public abstract class BaseTest implements Runnable {
     }
 
     public void startTest() {
-        if (!mPrefUtils.isReboot()) {
-            setSuccessTimes(0);
-            setFailureTimes(0);
-        }
+        //if (!mPrefUtils.isReboot()) {
+        //    setSuccessTimes(0);
+        //    setFailureTimes(0);
+        //}
         setTestTimer(MSG_START);
     }
 

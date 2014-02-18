@@ -26,7 +26,6 @@ public class AutoTestActivity extends ListActivity implements TestListener,
         DialogInterface.OnClickListener {
 
     private static final String LOG_TAG = "AutoTest";
-    private static final String CURRENT = "current";
 
     private AutoTestAdapter mAdapter;
     private PreferenceUtils mPrefUtils;
@@ -133,12 +132,11 @@ public class AutoTestActivity extends ListActivity implements TestListener,
     @Override
     public void onTestStop() {
         updateInfo();
-        int current = getCurrent();
-        current++;
-        setCurrent(current);
+        int current = mPrefUtils.getCurrent();
+        mPrefUtils.setCurrent(++current);
 
         if (current < mAdapter.getCount()) {
-            startTest(new Bundle());
+            startTest();
         } else {
             mHandler.postDelayed(mNotifyRunnable, 3000);
             getListView().setFocusable(true);
@@ -162,10 +160,11 @@ public class AutoTestActivity extends ListActivity implements TestListener,
     private void startTest(Bundle bundle) {
         if (bundle != null || mPrefUtils.isReboot()) {
             if (bundle != null && "auto".equals(bundle.getString("mode"))) {
-                setCurrent(0);
+                mPrefUtils.setCurrent(0);
+                mAdapter.clearTimes();
             }
 
-            int current = getCurrent();
+            int current = mPrefUtils.getCurrent();
             BaseTest test = mAdapter.getItem(current);
 
             if (test != null && test.isEnabled()) {
@@ -181,16 +180,12 @@ public class AutoTestActivity extends ListActivity implements TestListener,
         }
     }
 
+    private void startTest() {
+        startTest(new Bundle());
+    }
+
     private void updateInfo() {
         mHandler.post(mUpdateRunnable);
-    }
-
-    private int getCurrent() {
-        return mPrefUtils.getInt(CURRENT, 0);
-    }
-
-    private void setCurrent(int current) {
-        mPrefUtils.putInt(CURRENT, current);
     }
 
     private void showPreferenceDialog(int position) {
