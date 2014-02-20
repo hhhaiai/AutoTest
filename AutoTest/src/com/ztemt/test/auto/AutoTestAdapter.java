@@ -27,11 +27,13 @@ import com.ztemt.test.auto.item.SDCardTest;
 import com.ztemt.test.auto.item.SleepWakeTest;
 import com.ztemt.test.auto.item.SmsTest;
 import com.ztemt.test.auto.item.WifiTest;
+import com.ztemt.test.auto.util.PreferenceUtils;
 
 public class AutoTestAdapter extends BaseAdapter {
 
     private Context mContext;
-    private static BaseTest[] sTests;
+    private BaseTest[] mTests;
+    private PreferenceUtils mPrefUtils;
 
     private Comparator<BaseTest> mComparator = new Comparator<BaseTest>() {
 
@@ -41,24 +43,34 @@ public class AutoTestAdapter extends BaseAdapter {
         }
     };
 
-    public AutoTestAdapter(Context context, Bundle bundle) {
+    public AutoTestAdapter(Context context) {
         mContext = context;
-        createTests(context);
-        for (int i = 0; i < sTests.length; i++) {
-            sTests[i].setExtras(bundle);
-        }
-        Arrays.sort(sTests, mComparator);
+        mTests = new BaseTest[] {
+                new AirplaneModeTest(context),
+                new BluetoothTest(context),
+                new WifiTest(context),
+                new RingtoneTest(context),
+                new SDCardTest(context),
+                new SleepWakeTest(context),
+                new CallTest(context),
+                new SmsTest(context),
+                new RebootTest(context),
+                //new RecoveryTest(context),
+                new NetworkTest(context),
+                new BasebandVersionTest(context)
+        };
+        mPrefUtils = new PreferenceUtils(context);
     }
 
     @Override
     public int getCount() {
-        return sTests.length;
+        return mTests.length;
     }
 
     @Override
     public BaseTest getItem(int position) {
         if (position < getCount()) {
-            return sTests[position];
+            return mTests[position];
         }
         return null;
     }
@@ -70,7 +82,7 @@ public class AutoTestAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        final BaseTest test = sTests[position];
+        final BaseTest test = mTests[position];
         ViewHolder holder = new ViewHolder();
         convertView = LayoutInflater.from(mContext).inflate(R.layout.list_item, null);
         holder.icon = (ImageView) convertView.findViewById(android.R.id.icon);
@@ -78,7 +90,7 @@ public class AutoTestAdapter extends BaseAdapter {
         holder.text2 = (TextView) convertView.findViewById(android.R.id.text2);
         holder.checkbox = (CheckBox) convertView.findViewById(android.R.id.checkbox);
 
-        holder.icon.setBackgroundResource(test.isRunning() ? android.R.drawable.ic_media_play : 0);
+        holder.icon.setBackgroundResource(position == mPrefUtils.getCurrent() ? android.R.drawable.ic_media_play : 0);
         holder.text1.setText(test.getTitle() + " [" + test.getTestTimes()
                 + "/" + test.getTotalTimes() + "]");
         holder.text2.setText(mContext.getString(R.string.test_summary,
@@ -94,51 +106,37 @@ public class AutoTestAdapter extends BaseAdapter {
         return convertView;
     }
 
-    public void clearTimes() {
-        for (int i = 0; i < sTests.length; i++) {
-            sTests[i].setSuccessTimes(0);
-            sTests[i].setFailureTimes(0);
+    public void setExtras(Bundle bundle) {
+        for (int i = 0; i < mTests.length; i++) {
+            mTests[i].setExtras(bundle);
         }
-        notifyDataSetChanged();
+        Arrays.sort(mTests, mComparator);
+    }
+
+    public void clearTimes() {
+        for (int i = 0; i < mTests.length; i++) {
+            mTests[i].setSuccessTimes(0);
+            mTests[i].setFailureTimes(0);
+        }
     }
 
     public void disableAll() {
-        for (int i = 0; i < sTests.length; i++) {
-            sTests[i].setEnabled(false);
+        for (int i = 0; i < mTests.length; i++) {
+            mTests[i].setEnabled(false);
         }
-        notifyDataSetChanged();
     }
 
     public byte[] report() {
         StringBuffer sb = new StringBuffer(mContext.getString(R.string.report_titles));
-        for (int i = 0; i < sTests.length; i++) {
+        for (int i = 0; i < mTests.length; i++) {
             sb.append((i + 1) + "\t");
-            sb.append(sTests[i].getTotalTimes() + "\t");
-            sb.append(sTests[i].getTestTimes() + "\t");
-            sb.append(sTests[i].getSuccessTimes() + "\t");
-            sb.append(sTests[i].getFailureTimes() + "\t");
-            sb.append(sTests[i].getTitle() + "\n");
+            sb.append(mTests[i].getTotalTimes() + "\t");
+            sb.append(mTests[i].getTestTimes() + "\t");
+            sb.append(mTests[i].getSuccessTimes() + "\t");
+            sb.append(mTests[i].getFailureTimes() + "\t");
+            sb.append(mTests[i].getTitle() + "\n");
         }
         return sb.toString().getBytes();
-    }
-
-    private void createTests(Context context) {
-        if (sTests == null) {
-            sTests = new BaseTest[] {
-                    new AirplaneModeTest(context),
-                    new BluetoothTest(context),
-                    new WifiTest(context),
-                    new RingtoneTest(context),
-                    new SDCardTest(context),
-                    new SleepWakeTest(context),
-                    new CallTest(context),
-                    new SmsTest(context),
-                    new RebootTest(context),
-                    //new RecoveryTest(context),
-                    new NetworkTest(context),
-                    new BasebandVersionTest(context)
-            };
-        }
     }
 
     private class ViewHolder {

@@ -2,10 +2,15 @@ package com.ztemt.test.auto;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -18,12 +23,11 @@ import android.view.WindowManager;
 import android.widget.ListView;
 
 import com.ztemt.test.auto.item.BaseTest;
-import com.ztemt.test.auto.item.TestListener;
 import com.ztemt.test.auto.util.PreferenceUtils;
 import com.ztemt.test.platform.PlatformService;
 
-public class AutoTestActivity extends ListActivity implements TestListener,
-        DialogInterface.OnClickListener {
+public class AutoTestActivity extends ListActivity implements DialogInterface.OnClickListener,
+        OnSharedPreferenceChangeListener {
 
     private static final String LOG_TAG = "AutoTest";
 
@@ -34,16 +38,18 @@ public class AutoTestActivity extends ListActivity implements TestListener,
 
     private PlatformService mPlatformService;
     private boolean mBound = false;
+    private static BaseTest sTest;
 
-    private Runnable mUpdateRunnable = new Runnable() {
+    private Runnable mStartRunnable = new Runnable() {
 
         @Override
         public void run() {
-            mAdapter.notifyDataSetChanged();
+            getListView().setFocusable(false);
+            getListView().smoothScrollToPosition(mPrefUtils.getCurrent());
         }
     };
 
-    private Runnable mNotifyRunnable = new Runnable() {
+    private Runnable mStopRunnable = new Runnable() {
 
         @Override
         public void run() {
@@ -55,6 +61,7 @@ public class AutoTestActivity extends ListActivity implements TestListener,
                     Log.e(LOG_TAG, "notifyStop", e);
                 }
             }
+            getListView().setFocusable(true);
         }
     };
 
@@ -73,6 +80,18 @@ public class AutoTestActivity extends ListActivity implements TestListener,
         }
     };
 
+    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (sTest != null) {
+                sTest.alert();
+                sTest.setFailure();
+                sTest.resume();
+            }
+        }
+    };
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -80,15 +99,23 @@ public class AutoTestActivity extends ListActivity implements TestListener,
                 | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.test_list);
 
-        getListView().setSelected(true);
-
         mPrefUtils = new PreferenceUtils(this);
-        if (savedInstanceState == null) {
-            handleIntent(getIntent().getExtras());
-        }
+        mPrefUtils.setOnPreferenceChangeListener(this);
+
+        mAdapter = new AutoTestAdapter(this);
+        setListAdapter(mAdapter);
+        getListView().setSelected(true);
 
         bindService(new Intent(PlatformService.class.getName()),
                 mServiceConnection, BIND_AUTO_CREATE);
+
+        handleIntent(getIntent().getExtras());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateInfo();
     }
 
     @Override
@@ -102,6 +129,8 @@ public class AutoTestActivity extends ListActivity implements TestListener,
         switch (item.getItemId()) {
         case R.id.manual_stop:
             mAdapter.disableAll();
+            mPrefUtils.setCurrent(-1);
+            //mHandler.postDelayed(mStopRunnable, 3500);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -122,32 +151,13 @@ public class AutoTestActivity extends ListActivity implements TestListener,
     protected void onDestroy() {
         super.onDestroy();
         unbindService(mServiceConnection);
-    }
-
-    @Override
-    public void onTestStart() {
-        updateInfo();
-    }
-
-    @Override
-    public void onTestStop() {
-        updateInfo();
-        int current = mPrefUtils.getCurrent();
-        mPrefUtils.setCurrent(++current);
-
-        if (current < mAdapter.getCount()) {
-            startTest();
-        } else {
-            mHandler.postDelayed(mNotifyRunnable, 3000);
-            getListView().setFocusable(true);
-        }
+        mPrefUtils.setOnPreferenceChangeListener(null);
     }
 
     @Override
     public void onClick(DialogInterface dialog, int which) {
         int position = Integer.parseInt(String.valueOf(mPrefView.getTag()));
         mAdapter.getItem(position).onPreferenceClick(mPrefView);
-        updateInfo();
     }
 
     @Override
@@ -157,35 +167,14 @@ public class AutoTestActivity extends ListActivity implements TestListener,
         }
     }
 
-    private void startTest(Bundle bundle) {
-        if (bundle != null || mPrefUtils.isReboot()) {
-            if (bundle != null && "auto".equals(bundle.getString("mode"))) {
-                mPrefUtils.setCurrent(0);
-                mAdapter.clearTimes();
-            }
-
-            int current = mPrefUtils.getCurrent();
-            BaseTest test = mAdapter.getItem(current);
-
-            if (test != null && test.isEnabled()) {
-                getListView().smoothScrollToPosition(current);
-                test.setTestListener(this);
-                test.startTest();
-
-                getListView().setFocusable(false);
-                updateInfo();
-            } else {
-                onTestStop();
-            }
-        }
-    }
-
-    private void startTest() {
-        startTest(new Bundle());
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,
+            String key) {
+        updateInfo();
     }
 
     private void updateInfo() {
-        mHandler.post(mUpdateRunnable);
+        mAdapter.notifyDataSetChanged();
     }
 
     private void showPreferenceDialog(int position) {
@@ -199,9 +188,65 @@ public class AutoTestActivity extends ListActivity implements TestListener,
         builder.show();
     }
 
+    private void registerReceiver() {
+        registerReceiver(mReceiver, new IntentFilter(BaseTest.ACTION_TIMEOUT));
+    }
+
+    private void unregisterReceiver() {
+        try {
+            unregisterReceiver(mReceiver);
+        } catch (IllegalArgumentException e) {
+            Log.e(LOG_TAG, "Timeout receiver is not register");
+        }
+    }
+
     private void handleIntent(Bundle bundle) {
-        mAdapter = new AutoTestAdapter(this, bundle);
-        setListAdapter(mAdapter);
-        startTest(bundle);
+        Log.d(LOG_TAG, "handleIntent current=" + mPrefUtils.getCurrent() + ", count="
+                + mAdapter.getCount() + ", reboot=" + mPrefUtils.isReboot()
+                + ", bundle=" + (bundle != null && !bundle.isEmpty())
+                + ", test=" + (sTest == null));
+        if (sTest == null && (bundle != null && !bundle.isEmpty() || mPrefUtils.isReboot())) {
+            if (bundle != null && "auto".equals(bundle.getString("mode"))) {
+                mPrefUtils.setCurrent(0);
+                mAdapter.clearTimes();
+            }
+
+            mPrefUtils.setReboot(false);
+
+            if (mPrefUtils.getCurrent() > -1 && mPrefUtils.getCurrent() < mAdapter.getCount()) {
+                mAdapter.setExtras(bundle);
+                new TestThread().start();
+            }
+        } else {
+            Log.d(LOG_TAG, "handleIntent already exist");
+        }
+    }
+
+    private class TestThread extends Thread {
+
+        @Override
+        public void run() {
+            int current;
+            while ((current = mPrefUtils.getCurrent()) < mAdapter.getCount()) {
+                sTest = mAdapter.getItem(current);
+                while (sTest != null && sTest.isEnabled()
+                        && sTest.getTestTimes() < sTest.getTotalTimes()) {
+                    mHandler.post(mStartRunnable);
+                    Log.d(LOG_TAG, String.format("%s[%d/%d]", sTest.getClass()
+                            .getSimpleName(), sTest.getTestTimes() + 1, sTest
+                            .getTotalTimes()));
+                    registerReceiver();
+                    sTest.onRun();
+                    sTest.cancelTimeout();
+                    unregisterReceiver();
+                }
+                mPrefUtils.setCurrent(++current);
+                mPrefUtils.setReboot(false);
+            }
+
+            mHandler.postDelayed(mStopRunnable, 3000);
+            mPrefUtils.setCurrent(-1);
+            sTest = null;
+        }
     }
 }

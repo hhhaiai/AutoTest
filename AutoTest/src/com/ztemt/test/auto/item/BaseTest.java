@@ -1,14 +1,9 @@
 package com.ztemt.test.auto.item;
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 import android.app.AlarmManager;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -24,25 +19,21 @@ import android.widget.TextView;
 import com.ztemt.test.auto.R;
 import com.ztemt.test.auto.util.PreferenceUtils;
 
-public abstract class BaseTest implements Runnable {
+public abstract class BaseTest {
 
     private static final String LOG_TAG = "AutoTest";
-    private static final String ACTION_TIMEOUT = "com.ztemt.test.auto.action.TIMEOUT";
     private static final String SUCCESS = "success";
     private static final String FAILURE = "failure";
     private static final String TIMES   = "times";
     private static final String ENABLED = "enabled";
     private static final String ORDINAL = "ordinal";
 
-    private static final int MSG_START = Integer.MIN_VALUE;
-    private static final int MSG_STOP  = Integer.MAX_VALUE;
+    public static final String ACTION_TIMEOUT = "com.ztemt.test.auto.action.TIMEOUT";
 
-    private ScheduledThreadPoolExecutor mTimerTask;
     private AlarmManager mAlarmManager;
     private PendingIntent mPendingIntent;
-    private Thread mThread;
+    private boolean mPause = false;
 
-    private TestListener mListener;
     private PreferenceUtils mPrefUtils;
     private String mSuccess;
     private String mFailure;
@@ -50,43 +41,9 @@ public abstract class BaseTest implements Runnable {
     private String mEnabled;
     private String mOrdinal;
 
-    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(ACTION_TIMEOUT)) {
-                // Play a alert sound and resume thread
-                playAlertRingtone();
-                setFailure();
-                resume();
-            }
-        }
-    };
-
-    private Runnable mStartRunnable = new Runnable() {
-
-        @Override
-        public void run() {
-            mThread = new Thread(BaseTest.this);
-            mThread.start();
-        }
-    };
-
-    private Runnable mStopRunnable = new Runnable() {
-
-        @Override
-        public void run() {
-            if (mListener != null) {
-                mListener.onTestStop();
-            }
-            mPrefUtils.setReboot(false);
-        }
-    };
-
     protected Context mContext;
 
-    protected abstract void onRun();
-
+    public abstract void onRun();
     public abstract String getTitle();
 
     public BaseTest(Context context) {
@@ -102,39 +59,6 @@ public abstract class BaseTest implements Runnable {
         mAlarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
     }
 
-    public void startTest() {
-        //if (!mPrefUtils.isReboot()) {
-        //    setSuccessTimes(0);
-        //    setFailureTimes(0);
-        //}
-        setTestTimer(MSG_START);
-    }
-
-    public void setTestTimer(final int msg, int delay) {
-        cancelTimerTask();
-
-        if (msg == MSG_START) {
-            mTimerTask = new ScheduledThreadPoolExecutor(10);
-            mTimerTask.schedule(mStartRunnable, delay, TimeUnit.MILLISECONDS);
-        } else if (msg == MSG_STOP) {
-            mTimerTask = new ScheduledThreadPoolExecutor(10);
-            mTimerTask.schedule(mStopRunnable, delay, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    public void setTestTimer(final int msg) {
-        setTestTimer(msg, 0);
-    }
-
-    public void cancelTimerTask() {
-        if (mTimerTask != null) {
-            mTimerTask.remove(mStartRunnable);
-            mTimerTask.remove(mStopRunnable);
-            mTimerTask.shutdownNow();
-            mTimerTask = null;
-        }
-    }
-
     public void setTimeout(long milliseconds) {
         Intent intent = new Intent(ACTION_TIMEOUT);
         mPendingIntent = PendingIntent.getBroadcast(mContext, 0, intent,
@@ -143,25 +67,8 @@ public abstract class BaseTest implements Runnable {
                 + milliseconds, mPendingIntent);
     }
 
-    @Override
-    public void run() {
-        synchronized (this) {
-            if (isEnabled() && getTestTimes() < getTotalTimes()) {
-                Log.d(LOG_TAG, String.format("%s[%d/%d]", getClass()
-                    .getSimpleName(), getTestTimes() + 1, getTotalTimes()));
-                IntentFilter filter = new IntentFilter(ACTION_TIMEOUT);
-                mContext.registerReceiver(mReceiver, filter);
-                onRun();
-                mAlarmManager.cancel(mPendingIntent);
-                mContext.unregisterReceiver(mReceiver);
-                if (mListener != null) {
-                    mListener.onTestStart();
-                }
-                setTestTimer(MSG_START);
-            } else {
-                setTestTimer(MSG_STOP);
-            }
-        }
+    public void cancelTimeout() {
+        mAlarmManager.cancel(mPendingIntent);
     }
 
     public int getTestTimes() {
@@ -234,31 +141,21 @@ public abstract class BaseTest implements Runnable {
         }
     }
 
-    public void setTestListener(TestListener listener) {
-        mListener = listener;
-    }
-
-    public boolean isRunning() {
-        return mThread != null && mThread.isAlive();
-    }
-
     public void pause() {
-        synchronized (mThread) {
-            try {
-                mThread.wait();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        Log.d(LOG_TAG, getClass().getSimpleName() + " paused");
+        mPause = true;
+        while (mPause) {
+            sleep(1000);
         }
     }
 
     public void resume() {
-        synchronized (mThread) {
-            mThread.notify();
-        }
+        Log.d(LOG_TAG, getClass().getSimpleName() + " resumed");
+        mPause = false;
     }
 
     public void sleep(long time) {
+        Log.d(LOG_TAG, String.format("%s sleep %d ms", getClass().getSimpleName(), time));
         try {
             Thread.sleep(time);
         } catch (InterruptedException e) {
@@ -296,7 +193,7 @@ public abstract class BaseTest implements Runnable {
         }
     }
 
-    private void playAlertRingtone() {
+    public void alert() {
         Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
         final Ringtone ringtone = RingtoneManager.getRingtone(mContext, uri);
         ringtone.play();

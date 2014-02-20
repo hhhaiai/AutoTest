@@ -2,6 +2,7 @@ package com.ztemt.test.auto.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.preference.PreferenceManager;
 
 public class PreferenceUtils {
@@ -59,10 +60,14 @@ public class PreferenceUtils {
     }
 
     public int getCurrent() {
-        return getInt(CURRENT, 0);
+        return getInt(CURRENT, -1);
     }
 
     public void setCurrent(int current) {
         putInt(CURRENT, current);
+    }
+
+    public void setOnPreferenceChangeListener(OnSharedPreferenceChangeListener listener) {
+        mPrefs.registerOnSharedPreferenceChangeListener(listener);
     }
 }
