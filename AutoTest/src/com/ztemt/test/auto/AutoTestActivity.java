@@ -127,10 +127,12 @@ public class AutoTestActivity extends ListActivity implements DialogInterface.On
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-        case R.id.manual_stop:
+        case R.id.manual_finish:
+            mHandler.post(mStopRunnable);
+            return true;
+        case R.id.manual_cancel:
             mAdapter.disableAll();
             mPrefUtils.setCurrent(-1);
-            //mHandler.postDelayed(mStopRunnable, 3500);
             return true;
         }
         return super.onOptionsItemSelected(item);
