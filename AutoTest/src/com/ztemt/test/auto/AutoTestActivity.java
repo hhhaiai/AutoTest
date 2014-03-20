@@ -129,6 +129,7 @@ public class AutoTestActivity extends ListActivity implements DialogInterface.On
         switch (item.getItemId()) {
         case R.id.manual_finish:
             mHandler.post(mStopRunnable);
+            mPrefUtils.setCurrent(-1);
             return true;
         case R.id.manual_cancel:
             mAdapter.disableAll();
@@ -204,16 +205,13 @@ public class AutoTestActivity extends ListActivity implements DialogInterface.On
 
     private void handleIntent(Bundle bundle) {
         Log.d(LOG_TAG, "handleIntent current=" + mPrefUtils.getCurrent() + ", count="
-                + mAdapter.getCount() + ", reboot=" + mPrefUtils.isReboot()
-                + ", bundle=" + (bundle != null && !bundle.isEmpty())
+                + mAdapter.getCount() + ", bundle=" + (bundle != null && !bundle.isEmpty())
                 + ", test=" + (sTest == null));
-        if (sTest == null && (bundle != null && !bundle.isEmpty() || mPrefUtils.isReboot())) {
+        if (sTest == null && (bundle != null && !bundle.isEmpty() || mPrefUtils.getCurrent() > -1)) {
             if (bundle != null && "auto".equals(bundle.getString("mode"))) {
                 mPrefUtils.setCurrent(0);
                 mAdapter.clearTimes();
             }
-
-            mPrefUtils.setReboot(false);
 
             if (mPrefUtils.getCurrent() > -1 && mPrefUtils.getCurrent() < mAdapter.getCount()) {
                 mAdapter.setExtras(bundle);
@@ -243,7 +241,6 @@ public class AutoTestActivity extends ListActivity implements DialogInterface.On
                     unregisterReceiver();
                 }
                 mPrefUtils.setCurrent(++current);
-                mPrefUtils.setReboot(false);
             }
 
             mHandler.postDelayed(mStopRunnable, 3000);

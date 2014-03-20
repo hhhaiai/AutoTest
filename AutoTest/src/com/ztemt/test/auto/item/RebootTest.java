@@ -5,7 +5,6 @@ import android.os.PowerManager;
 import android.util.Log;
 
 import com.ztemt.test.auto.R;
-import com.ztemt.test.auto.util.PreferenceUtils;
 
 public class RebootTest extends BaseTest {
 
@@ -28,8 +27,6 @@ public class RebootTest extends BaseTest {
     }
 
     public void reboot() {
-        new PreferenceUtils(mContext).setReboot(true);
-
         Log.d(LOG_TAG, "Performing reboot...");
         PowerManager powerManager = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
         powerManager.reboot(null);

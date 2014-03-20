@@ -13,7 +13,8 @@ public class AutoTestReceiver extends BroadcastReceiver {
         String action = intent.getAction();
 
         if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
-            if (new PreferenceUtils(context).isReboot()) {
+            PreferenceUtils pref = new PreferenceUtils(context);
+            if (pref.getCurrent() > -1) {
                 Intent i = new Intent(context, AutoTestActivity.class);
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(i);

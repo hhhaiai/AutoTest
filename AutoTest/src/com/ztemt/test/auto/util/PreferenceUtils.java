@@ -7,7 +7,6 @@ import android.preference.PreferenceManager;
 
 public class PreferenceUtils {
 
-    private static final String REBOOT = "reboot";
     private static final String CURRENT = "current";
     private SharedPreferences mPrefs;
 
@@ -49,14 +48,6 @@ public class PreferenceUtils {
 
     public void remove(String key) {
         mPrefs.edit().remove(key).commit();
-    }
-
-    public boolean isReboot() {
-        return getBoolean(REBOOT, false);
-    }
-
-    public void setReboot(boolean reboot) {
-        putBoolean(REBOOT, reboot);
     }
 
     public int getCurrent() {

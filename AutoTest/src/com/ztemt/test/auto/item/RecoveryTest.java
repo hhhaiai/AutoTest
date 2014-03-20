@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.util.Log;
 
 import com.ztemt.test.auto.R;
-import com.ztemt.test.auto.util.PreferenceUtils;
 
 public class RecoveryTest extends BaseTest {
 
@@ -28,8 +27,6 @@ public class RecoveryTest extends BaseTest {
     }
 
     private void recovery() {
-        new PreferenceUtils(mContext).setReboot(true);
-
         Log.d(LOG_TAG, "Performing recovery system...");
         Intent intent = new Intent("android.intent.action.MASTER_CLEAR");
         mContext.sendBroadcast(intent);
