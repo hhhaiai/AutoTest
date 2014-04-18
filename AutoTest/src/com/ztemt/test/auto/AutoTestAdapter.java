@@ -15,18 +15,33 @@ import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.ztemt.test.auto.item.AccelerometerSensorTest;
 import com.ztemt.test.auto.item.AirplaneModeTest;
 import com.ztemt.test.auto.item.BaseTest;
 import com.ztemt.test.auto.item.BasebandVersionTest;
 import com.ztemt.test.auto.item.BluetoothTest;
+import com.ztemt.test.auto.item.BreathinglightTest;
 import com.ztemt.test.auto.item.CallTest;
+import com.ztemt.test.auto.item.CameraTest;
+import com.ztemt.test.auto.item.ChargerTest;
+import com.ztemt.test.auto.item.CompassSensorTest;
+import com.ztemt.test.auto.item.FileSystemTest;
+import com.ztemt.test.auto.item.GyroscopeSensorTest;
+import com.ztemt.test.auto.item.HumiditySensorTest;
+import com.ztemt.test.auto.item.LightSensorTest;
 import com.ztemt.test.auto.item.NetworkTest;
+import com.ztemt.test.auto.item.NfcTest;
+import com.ztemt.test.auto.item.PressureSensorTest;
+import com.ztemt.test.auto.item.ProximitySensorTest;
 import com.ztemt.test.auto.item.RebootTest;
 import com.ztemt.test.auto.item.RingtoneTest;
 import com.ztemt.test.auto.item.SDCardTest;
 import com.ztemt.test.auto.item.SleepWakeTest;
 import com.ztemt.test.auto.item.SmsTest;
+import com.ztemt.test.auto.item.TemperatureSensorTest;
+import com.ztemt.test.auto.item.VibratorTest;
 import com.ztemt.test.auto.item.WifiTest;
+import com.ztemt.test.auto.item.WirelessTest;
 import com.ztemt.test.auto.util.PreferenceUtils;
 
 public class AutoTestAdapter extends BaseAdapter {
@@ -47,13 +62,29 @@ public class AutoTestAdapter extends BaseAdapter {
         mContext = context;
         mTests = new BaseTest[] {
                 new AirplaneModeTest(context),
+                new WirelessTest(context),
                 new BluetoothTest(context),
                 new WifiTest(context),
+                new NfcTest(context),
                 new RingtoneTest(context),
+                new FileSystemTest(context),
+                new CameraTest(context),
                 new SDCardTest(context),
+                new ChargerTest(context),
                 new SleepWakeTest(context),
+                new BreathinglightTest(context),
+                //new ApnTest(context),
                 new CallTest(context),
                 new SmsTest(context),
+                new VibratorTest(context),
+                new CompassSensorTest(context),
+                new AccelerometerSensorTest(context),
+                new ProximitySensorTest(context),
+                new LightSensorTest(context),
+                new GyroscopeSensorTest(context),
+                new PressureSensorTest(context),
+                new HumiditySensorTest(context),
+                new TemperatureSensorTest(context),
                 new RebootTest(context),
                 //new RecoveryTest(context),
                 new NetworkTest(context),
