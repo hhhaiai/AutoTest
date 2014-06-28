@@ -25,11 +25,13 @@ import com.ztemt.test.auto.item.CallTest;
 import com.ztemt.test.auto.item.CameraTest;
 import com.ztemt.test.auto.item.ChargerTest;
 import com.ztemt.test.auto.item.CompassSensorTest;
+import com.ztemt.test.auto.item.DataTest;
 import com.ztemt.test.auto.item.FileSystemTest;
 import com.ztemt.test.auto.item.GyroscopeSensorTest;
 import com.ztemt.test.auto.item.HumiditySensorTest;
 import com.ztemt.test.auto.item.LightSensorTest;
 import com.ztemt.test.auto.item.NetworkTest;
+import com.ztemt.test.auto.item.NetworkTest2;
 import com.ztemt.test.auto.item.NfcTest;
 import com.ztemt.test.auto.item.PressureSensorTest;
 import com.ztemt.test.auto.item.ProximitySensorTest;
@@ -88,7 +90,9 @@ public class AutoTestAdapter extends BaseAdapter {
                 new RebootTest(context),
                 //new RecoveryTest(context),
                 new NetworkTest(context),
-                new BasebandVersionTest(context)
+                new BasebandVersionTest(context),
+                new NetworkTest2(context),
+                new DataTest(context)
         };
         mPrefUtils = new PreferenceUtils(context);
     }

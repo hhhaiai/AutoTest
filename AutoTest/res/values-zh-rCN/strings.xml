@@ -37,7 +37,9 @@
     <string name="temperature_sensor_test">温度传感器测试</string>
     <string name="reboot_test">重启测试</string>
     <string name="recovery_test">恢复出厂设置测试</string>
-    <string name="network_test">网络服务测试</string>
+    <string name="network_test">开机搜网测试</string>
+    <string name="network_test2">网络搜索测试</string>
+    <string name="data_test">数据业务测试</string>
     <string name="baseband_version_test">基带版本测试</string>
     <string name="report_titles">序号\t总次数\t测试次数\t成功次数\t失败次数\t测试项\n</string>
 

@@ -128,8 +128,10 @@ public abstract class BaseTest {
 
         if (bundle.containsKey(mTimes)) {
             setTotalTimes(bundle.getInt(mTimes, 10));
+            setEnabled(bundle.getInt(mTimes, 10) > 0);
         } else if (bundle.containsKey(TIMES)) {
             setTotalTimes(bundle.getInt(TIMES, 10));
+            setEnabled(bundle.getInt(TIMES, 10) > 0);
         }
         if (bundle.containsKey(mEnabled)) {
             setEnabled(bundle.getBoolean(mEnabled, true));
