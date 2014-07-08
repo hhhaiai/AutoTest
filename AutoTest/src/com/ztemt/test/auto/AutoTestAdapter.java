@@ -32,6 +32,7 @@ import com.ztemt.test.auto.item.HumiditySensorTest;
 import com.ztemt.test.auto.item.LightSensorTest;
 import com.ztemt.test.auto.item.NetworkTest;
 import com.ztemt.test.auto.item.NetworkTest2;
+import com.ztemt.test.auto.item.NetworkTest3;
 import com.ztemt.test.auto.item.NfcTest;
 import com.ztemt.test.auto.item.PressureSensorTest;
 import com.ztemt.test.auto.item.ProximitySensorTest;
@@ -92,6 +93,7 @@ public class AutoTestAdapter extends BaseAdapter {
                 new NetworkTest(context),
                 new BasebandVersionTest(context),
                 new NetworkTest2(context),
+                new NetworkTest3(context),
                 new DataTest(context)
         };
         mPrefUtils = new PreferenceUtils(context);

@@ -41,6 +41,7 @@
     <string name="recovery_test">Recovery Test</string>
     <string name="network_test">Network Service Test</string>
     <string name="network_test2">Network Search Test</string>
+    <string name="network_test3">Network Search Maximum Time Test</string>
     <string name="data_test">Data Test</string>
     <string name="baseband_version_test">Baseband Version Test</string>
     <string name="report_titles">No.\tTotal Times\tTest Times\tSuccess Times\tFailure Times\tTest Item\n</string>

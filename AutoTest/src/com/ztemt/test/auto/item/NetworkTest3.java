@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneStateListener;
@@ -13,15 +14,18 @@ import android.util.Log;
 
 import com.ztemt.test.auto.R;
 
-public class NetworkTest2 extends BaseTest {
+public class NetworkTest3 extends BaseTest {
 
-    private static final String LOG_TAG = "NetworkTest2";
+    private static final String LOG_TAG = "NetworkTest3";
 
     private MSimTelephonyManager mMSTM;
     private TelephonyManager mTM;
 
     private boolean mStateInService1;
     private boolean mStateInService2;
+
+    private long mMaxTime;
+    private long mPreTime;
 
     private PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
 
@@ -65,7 +69,7 @@ public class NetworkTest2 extends BaseTest {
         }
     };
 
-    public NetworkTest2(Context context) {
+    public NetworkTest3(Context context) {
         super(context);
         mMSTM = (MSimTelephonyManager) mContext.getSystemService("phone_msim");
         mTM = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
@@ -78,7 +82,8 @@ public class NetworkTest2 extends BaseTest {
         }
         sleep(30000);
         setAirplaneModeOn(false);
-        setTimeout(60000);
+        setTimeout(600000);
+        mPreTime = SystemClock.elapsedRealtime();
         if (mMSTM.isMultiSimEnabled()) {
             mStateInService1 = false;
             mStateInService2 = false;
@@ -92,11 +97,22 @@ public class NetworkTest2 extends BaseTest {
             pause();
             mTM.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
         }
+        if (getTestTimes() >= getTotalTimes()) {
+            Log.d(LOG_TAG, "The longest time of search network is " + mMaxTime + "ms");
+        }
     }
 
     @Override
     public String getTitle() {
-        return mContext.getString(R.string.network_test2);
+        return mContext.getString(R.string.network_test3);
+    }
+
+    @Override
+    public void setSuccess() {
+        super.setSuccess();
+        long cost = SystemClock.elapsedRealtime() - mPreTime;
+        Log.d(LOG_TAG, "search network spent " + cost + "ms");
+        mMaxTime = Math.max(cost, mMaxTime);
     }
 
     @Override
